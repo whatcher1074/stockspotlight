@@ -1,0 +1,25 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output
+bin/
+*.log
+
+# Build artifacts
+*.test
+*.out
+
+# Dependency directories
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS-specific
+.DS_Store
+Thumbs.db
