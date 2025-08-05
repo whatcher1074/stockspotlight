@@ -1,0 +1,28 @@
+<!-- File: static/losers_table.html -->
+<h3>Top Losers</h3>
+{{if .HasData}}
+  <table class="table table-striped table-sm">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Change</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Data}}
+        <tr>
+          <td>{{.Ticker}}</td>
+          <td>{{.Name}}</td>
+          <td>{{.Price}}</td>
+          <td class="{{if gt .Change 0}}text-success{{else if lt .Change 0}}text-danger{{else}}text-muted{{end}}">{{printf "%.2f" .Change}}</td>
+        </tr>
+      {{end}}
+    </tbody>
+  </table>
+{{else}}
+  <div class="alert alert-warning" role="alert">
+    {{.ErrorMsg}}
+  </div>
+{{end}}

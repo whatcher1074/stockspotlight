@@ -23,3 +23,8 @@ vendor/
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Sensitive config (your real Polygon API key)
+config/app.yaml
+logs/app.log
+

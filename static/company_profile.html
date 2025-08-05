@@ -1,0 +1,18 @@
+<!-- File: static/company_profile.html -->
+<h3>Company Profile (AAPL)</h3>
+{{if .HasData}}
+  <div>
+    <p><strong>Name:</strong> {{.Name}}</p>
+    <p><strong>Ticker:</strong> {{.Ticker}}</p>
+    <p><strong>Exchange:</strong> {{.Exchange}}</p>
+    <p><strong>Industry:</strong> {{.Industry}}</p>
+    <p><strong>Web URL:</strong> <a href="{{.WebURL}}" target="_blank">{{.WebURL}}</a></p>
+    {{if .Logo}}
+      <img src="{{.Logo}}" alt="{{.Name}} Logo" style="max-width: 100px; max-height: 100px;">
+    {{end}}
+  </div>
+{{else}}
+  <div class="alert alert-warning" role="alert">
+    {{.ErrorMsg}}
+  </div>
+{{end}}

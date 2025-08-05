@@ -1,0 +1,4 @@
+polygon_api_key: "YOUR_API_KEY"
+cache_ttl_seconds: 60
+polling_interval_seconds: 15
+ticker_limit: 10

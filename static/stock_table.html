@@ -1,0 +1,33 @@
+<!-- File: static/stock_table.html -->
+{{if .HasData}}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Company Name</th>
+        <th>Current Price</th>
+        <th>Change</th>
+        <th>High</th>
+        <th>Low</th>
+        <th>Volume</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Data}}
+        <tr>
+          <td>{{.Ticker}}</td>
+          <td>{{.Name}}</td>
+          <td>{{.Price}}</td>
+          <td class="{{if gt .Change 0}}text-success{{else if lt .Change 0}}text-danger{{else}}text-muted{{end}}">{{printf "%.2f" .Change}}</td>
+          <td class="text-success">{{.High}}</td>
+          <td class="text-danger">{{.Low}}</td>
+          <td class="text-info">{{.Volume}}</td>
+        </tr>
+      {{end}}
+    </tbody>
+  </table>
+{{else}}
+  <div class="alert alert-warning" role="alert">
+    {{.ErrorMsg}}
+  </div>
+{{end}}

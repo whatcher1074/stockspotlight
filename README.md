@@ -88,3 +88,11 @@ stockspotlight/
 ├── .gitattributes
 ├── README.md
 └── go.mod / go.sum
+
+
+### Configuration
+
+Before running the app, copy `config/app.yaml_example` to `config/app.yaml` and add your [Polygon.io](https://polygon.io) API key:
+
+```bash
+cp config/app.yaml_example config/app.yaml

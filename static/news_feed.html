@@ -1,0 +1,16 @@
+<!-- File: static/news_feed.html -->
+<h3>Latest News</h3>
+{{if .HasData}}
+  <ul class="list-group">
+    {{range .Data}}
+      <li class="list-group-item">
+        <a href="{{.URL}}" target="_blank">{{.Headline}}</a>
+        <small class="text-muted d-block">{{.Source}} - {{.Time}}</small>
+      </li>
+    {{end}}
+  </ul>
+{{else}}
+  <div class="alert alert-warning" role="alert">
+    {{.ErrorMsg}}
+  </div>
+{{end}}
