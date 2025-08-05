@@ -20,6 +20,9 @@ This app showcases a production-grade architecture for a low-latency, real-time 
 
 ---
 
+![Phase 1 Architecture Diagram](docs/diagram-export.png)
+
+
 ## 🛠️ Core Features
 
 | Feature                      | Description                                                  |
