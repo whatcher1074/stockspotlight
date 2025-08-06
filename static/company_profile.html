@@ -1,18 +1,58 @@
 <!-- File: static/company_profile.html -->
-<h3>Company Profile (AAPL)</h3>
-{{if .HasData}}
-  <div>
-    <p><strong>Name:</strong> {{.Name}}</p>
-    <p><strong>Ticker:</strong> {{.Ticker}}</p>
-    <p><strong>Exchange:</strong> {{.Exchange}}</p>
-    <p><strong>Industry:</strong> {{.Industry}}</p>
-    <p><strong>Web URL:</strong> <a href="{{.WebURL}}" target="_blank">{{.WebURL}}</a></p>
-    {{if .Logo}}
-      <img src="{{.Logo}}" alt="{{.Name}} Logo" style="max-width: 100px; max-height: 100px;">
-    {{end}}
-  </div>
-{{else}}
-  <div class="alert alert-warning" role="alert">
-    {{.ErrorMsg}}
-  </div>
-{{end}}
+<div>
+  <p><small>Last updated: <span>{{.Timestamp}}</span></small></p>
+  
+  {{if .HasData}}
+    <div class="d-flex align-items-start mb-3">
+      {{if .Logo}}
+        <img src="{{.Logo}}" alt="{{.Name}} Logo" class="me-3 rounded" style="max-width: 60px; max-height: 60px;">
+      {{end}}
+      <div>
+        <h6 class="mb-1">{{.Name}}</h6>
+        <span class="badge bg-primary">{{.Ticker}}</span>
+        <span class="badge bg-secondary ms-1">{{.Exchange}}</span>
+      </div>
+    </div>
+    
+    <div class="company-details">
+      <div class="row g-2">
+        <div class="col-12">
+          <small class="text-muted">Industry:</small>
+          <div>{{.Industry}}</div>
+        </div>
+        {{if .WebURL}}
+        <div class="col-12 mt-2">
+          <small class="text-muted">Website:</small>
+          <div><a href="{{.WebURL}}" target="_blank" class="text-decoration-none">{{.WebURL}}</a></div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+    
+    <div class="mt-3">
+      <button class="btn btn-outline-primary btn-sm" 
+              hx-get="/data/profile?symbol=MSFT" 
+              hx-target="#company-profile"
+              hx-indicator="#company-profile .htmx-indicator">
+        MSFT
+      </button>
+      <button class="btn btn-outline-primary btn-sm" 
+              hx-get="/data/profile?symbol=GOOGL" 
+              hx-target="#company-profile"
+              hx-indicator="#company-profile .htmx-indicator">
+        GOOGL
+      </button>
+      <button class="btn btn-outline-primary btn-sm" 
+              hx-get="/data/profile?symbol=TSLA" 
+              hx-target="#company-profile"
+              hx-indicator="#company-profile .htmx-indicator">
+        TSLA
+      </button>
+    </div>
+    
+  {{else}}
+    <div class="alert alert-warning" role="alert">
+      {{.ErrorMsg}}
+    </div>
+  {{end}}
+</div>

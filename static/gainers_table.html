@@ -1,28 +1,53 @@
 <!-- File: static/gainers_table.html -->
-<h3>Top Gainers</h3>
-{{if .HasData}}
-  <table class="table table-striped table-sm">
-    <thead>
-      <tr>
-        <th>Ticker</th>
-        <th>Name</th>
-        <th>Price</th>
-        <th>Change</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Data}}
-        <tr>
-          <td>{{.Ticker}}</td>
-          <td>{{.Name}}</td>
-          <td>{{.Price}}</td>
-          <td class="{{if gt .Change 0}}text-success{{else if lt .Change 0}}text-danger{{else}}text-muted{{end}}">{{printf "%.2f" .Change}}</td>
-        </tr>
-      {{end}}
-    </tbody>
-  </table>
-{{else}}
-  <div class="alert alert-warning" role="alert">
-    {{.ErrorMsg}}
+<div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <span class="badge" style="background: var(--gradient-success);">TOP GAINERS</span>
+      <small class="text-muted ms-2">Updated: {{.Timestamp}}</small>
+    </div>
+    <div class="htmx-indicator">
+      <div class="spinner-border spinner-border-sm text-success" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
   </div>
-{{end}}
+  
+  {{if .HasData}}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-sm">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Company</th>
+            <th>Price</th>
+            <th>Gain</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Data}}
+            <tr>
+              <td><strong class="text-primary">{{.Ticker}}</strong></td>
+              <td class="text-truncate" style="max-width: 150px;">{{.Name}}</td>
+              <td><strong>${{.Price}}</strong></td>
+              <td>
+                <span class="badge text-success" style="background: rgba(0, 212, 170, 0.2); border: 1px solid var(--accent-green);">
+                  📈 +{{.Change}}
+                </span>
+              </td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="mt-2 p-2" style="background: rgba(0, 212, 170, 0.1); border-radius: 6px;">
+      <small class="text-success">
+        <strong>📊 Performance:</strong> {{len .Data}} top performing stocks
+      </small>
+    </div>
+  {{else}}
+    <div class="alert alert-warning" role="alert">
+      <i class="me-2">⚠️</i>{{.ErrorMsg}}
+    </div>
+  {{end}}
+</div>

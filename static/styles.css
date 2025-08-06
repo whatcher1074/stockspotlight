@@ -1,12 +1,219 @@
 /* File: static/styles.css */
-body {
-  background-color: #f8f9fa;
+:root {
+  --primary-light: #ffffff;
+  --secondary-light: #f8f9fa;
+  --tertiary-light: #e9ecef;
+  --accent-azure: #007FFF;
+  --accent-green: #28a745;
+  --accent-red: #dc3545;
+  --accent-gold: #ffc107;
+  --text-dark: #212529;
+  --text-muted: #6c757d;
+  --border-color: #007FFF;
+  --border-light: #dee2e6;
+  --shadow-light: rgba(0, 127, 255, 0.1);
+  --shadow-medium: rgba(0, 127, 255, 0.2);
+  --gradient-primary: linear-gradient(135deg, #007FFF 0%, #0056b3 100%);
+  --gradient-success: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  --gradient-danger: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
 }
 
+body {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #e9ecef 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  color: var(--text-dark);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header Styling */
+header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 2px solid var(--accent-azure);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 32px var(--shadow-medium);
+}
+
+header h1 {
+  background: var(--gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+header .lead {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Card Styling */
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 2px solid var(--accent-azure);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px var(--shadow-medium);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(0, 127, 255, 0.3);
+  border-color: var(--accent-azure);
+}
+
+.card-header {
+  background: var(--gradient-primary);
+  border-bottom: 2px solid var(--accent-azure);
+  padding: 1.25rem;
+}
+
+.card-header h5, .card-header h6 {
+  color: white;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.card-body {
+  padding: 1.5rem;
+  background: rgba(248, 249, 250, 0.3);
+}
+
+/* Table Styling */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(0, 127, 255, 0.05);
+  --bs-table-hover-bg: rgba(0, 127, 255, 0.1);
+  color: var(--text-dark);
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  padding: 1rem 0.75rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.table tbody td {
+  border-color: var(--border-light);
+  padding: 0.875rem 0.75rem;
+  vertical-align: middle;
+  border-width: 1px;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(0, 127, 255, 0.08) !important;
+}
+
+/* Stock ticker styling */
+.table tbody td:first-child {
+  font-weight: 700;
+  color: var(--accent-azure);
+  font-family: 'Fira Code', monospace;
+}
+
+/* Color Classes */
+.text-success {
+  color: var(--accent-green) !important;
+  font-weight: 600;
+}
+
+.text-danger {
+  color: var(--accent-red) !important;
+  font-weight: 600;
+}
+
+.text-info {
+  color: var(--accent-azure) !important;
+}
+
+.text-warning {
+  color: var(--accent-gold) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Button Styling */
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.btn-success {
+  background: var(--gradient-success);
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.btn-danger {
+  background: var(--gradient-danger);
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-info {
+  background: linear-gradient(135deg, var(--accent-azure) 0%, #0056b3 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 127, 255, 0.3);
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, var(--accent-gold) 0%, #fd7e14 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.btn-outline-primary {
+  border: 2px solid var(--accent-azure);
+  color: var(--accent-azure);
+  background: transparent;
+}
+
+.btn-outline-primary:hover {
+  background: var(--accent-azure);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btn-outline-secondary {
+  border: 2px solid var(--border-light);
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.btn-outline-secondary:hover {
+  background: var(--border-light);
+  color: var(--text-dark);
+}
+
+/* HTMX Indicators */
 .htmx-indicator {
   display: none;
   opacity: 0;
-  transition: opacity 200ms ease-in;
+  transition: opacity 300ms ease-in;
 }
 
 .htmx-request .htmx-indicator {
@@ -19,18 +226,131 @@ body {
   opacity: 1;
 }
 
-.text-success {
-  color: #28a745 !important;
+.spinner-border {
+  --bs-spinner-border-width: 0.2em;
 }
 
-.text-danger {
-  color: #dc3545 !important;
+/* Badge Styling */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
 }
 
-.text-info {
-  color: #17a2b8 !important;
+.bg-primary {
+  background: var(--gradient-primary) !important;
 }
 
-.text-muted {
-  color: #6c757d !important;
+.bg-secondary {
+  background: linear-gradient(135deg, var(--border-light) 0%, #adb5bd 100%) !important;
+}
+
+/* Alert Styling */
+.alert {
+  border: none;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.alert-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border: 2px solid rgba(255, 193, 7, 0.3);
+  color: #856404;
+}
+
+/* Company Profile Specific */
+.company-details {
+  background: rgba(0, 127, 255, 0.05);
+  border: 2px solid var(--accent-azure);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+/* News Articles */
+.news-articles .border-bottom {
+  border-color: var(--border-light) !important;
+  padding: 1rem 0;
+  transition: all 0.3s ease;
+}
+
+.news-articles .border-bottom:hover {
+  background: rgba(0, 127, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.news-articles h6 a {
+  color: var(--text-dark);
+  transition: color 0.3s ease;
+}
+
+.news-articles h6 a:hover {
+  color: var(--accent-azure);
+}
+
+/* Timestamp Styling */
+small {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 1rem;
+  }
+  
+  header {
+    padding: 1.5rem;
+    text-align: center;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .table {
+    font-size: 0.9rem;
+  }
+  
+  .btn-group .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Loading states */
+.loading-placeholder {
+  background: linear-gradient(90deg, rgba(0,127,255,0.1) 0%, rgba(0,127,255,0.2) 50%, rgba(0,127,255,0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-azure);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
 }

@@ -17,8 +17,7 @@ import (
 	"github.com/whatcher1074/stockspotlight/internal/config"
 	"github.com/whatcher1074/stockspotlight/internal/health"
 	"github.com/whatcher1074/stockspotlight/internal/logger"
-
-	finnhub "github.com/Finnhub-Stock-API/finnhub-go/v2"
+	// finnhub "github.com/Finnhub-Stock-API/finnhub-go/v2"
 )
 
 var (
@@ -44,6 +43,14 @@ func main() {
 	}
 	appLogger.Info("App starting...")
 
+	// Defer logger cleanup
+	defer func() {
+		appLogger.Info("Shutting down logger...")
+		if err := appLogger.Close(); err != nil {
+			log.Printf("Error closing logger: %v", err)
+		}
+	}()
+
 	// Initialize Finnhub client
 	api.InitFinnhubClient(cfg.APIKey)
 
@@ -67,173 +74,338 @@ func main() {
 	// Health check
 	mux.HandleFunc("/healthz", serveHealthz)
 
-	// Helper function to fetch and render screener data
-	/*
-		fetchAndRenderScreener := func(w http.ResponseWriter, r *http.Request, signal string, tmpl *template.Template, cacheKey string) {
-			appLogger.Infof("Serving data for HTMX panel: %s", signal)
-			cachedData, found := c.Get(cacheKey)
+	// Log management endpoints
+	mux.HandleFunc("/logs/status", func(w http.ResponseWriter, r *http.Request) {
+		stats, err := appLogger.GetStats()
+		if err != nil {
+			appLogger.Errorf("Error getting log stats: %v", err)
+			http.Error(w, fmt.Sprintf("Error getting log stats: %v", err), http.StatusInternalServerError)
+			return
+		}
 
+		w.Header().Set("Content-Type", "application/json")
+		response := fmt.Sprintf(`{
+			"currentSize": "%s",
+			"currentAge": "%v",
+			"rotatedFiles": %d,
+			"totalSize": "%s",
+			"maxSize": "%s",
+			"maxAge": "%v",
+			"maxFiles": %d,
+			"status": "healthy"
+		}`,
+			stats.FormatSize(stats.CurrentSize),
+			stats.CurrentAge.Round(time.Minute),
+			stats.RotatedCount,
+			stats.FormatSize(stats.TotalSize),
+			stats.FormatSize(logger.MaxLogFileSize),
+			logger.MaxLogAge,
+			logger.MaxLogFiles,
+		)
+		w.Write([]byte(response))
+		appLogger.Infof("Log status requested: %s", stats.String())
+	})
+
+	mux.HandleFunc("/logs/rotate", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		appLogger.Info("Manual log rotation requested via API")
+		err := appLogger.ForceRotate()
+		if err != nil {
+			appLogger.Errorf("Error rotating logs: %v", err)
+			http.Error(w, fmt.Sprintf("Error rotating logs: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status": "success", "message": "Log rotation completed"}`))
+		appLogger.Info("Manual log rotation completed successfully")
+	})
+
+	mux.HandleFunc("/logs/cleanup", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		appLogger.Info("Manual log cleanup requested via API")
+		err := appLogger.CleanupOldLogs()
+		if err != nil {
+			appLogger.Errorf("Error cleaning up logs: %v", err)
+			http.Error(w, fmt.Sprintf("Error cleaning up logs: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status": "success", "message": "Log cleanup completed"}`))
+		appLogger.Info("Manual log cleanup completed successfully")
+	})
+
+	// Generic handler function for screener data (most active, gainers, losers)
+	createScreenerHandler := func(signal string, tmpl *template.Template, cacheKey string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			appLogger.Infof("Request received for %s", signal)
+			now := time.Now().Format("15:04:05")
+
+			cachedData, found := c.Get(cacheKey)
 			var displayData []api.CombinedData
+
 			if found {
 				if d, ok := cachedData.([]api.CombinedData); ok {
 					displayData = d
+					appLogger.Infof("Using cached data for %s with %d items", signal, len(d))
 				} else {
-					appLogger.Errorf("Cached data for %s is not of expected type []api.CombinedData", signal)
+					appLogger.Errorf("Cached data type mismatch for %s", signal)
 					found = false
 				}
 			}
 
 			// If data not found in cache or expired, fetch it
 			if !found {
+				appLogger.Infof("Fetching fresh data for %s", signal)
 				data, err := api.FetchAllData(cfg.APIKey, cfg.TickerLimit, appLogger, signal)
 				if err != nil {
 					appLogger.Errorf("Failed to fetch %s data: %v", signal, err)
-					// Still render the template, but with an error message
 					pageData := map[string]interface{}{
-						"HasData":  false,
-						"ErrorMsg": fmt.Sprintf("Failed to load %s data: %v", signal, err),
+						"HasData":   false,
+						"ErrorMsg":  fmt.Sprintf("Failed to load %s data: %v", signal, err),
+						"Timestamp": now,
 					}
 					tmpl.Execute(w, pageData)
 					return
 				}
 				c.Set(cacheKey, data, time.Duration(cfg.CacheTTL)*time.Second)
 				displayData = data
-				found = true
+				appLogger.Infof("Fetched %d items for %s, cached for %d seconds", len(data), signal, cfg.CacheTTL)
 			}
 
 			pageData := map[string]interface{}{
-				"Data":     displayData,
-				"HasData":  found,
-				"Error":    !found,
-				"ErrorMsg": "Stock data is not yet available. The application may be starting up, or there could be an issue with the data provider.",
+				"Data":      displayData,
+				"HasData":   len(displayData) > 0,
+				"ErrorMsg":  "",
+				"Timestamp": now,
 			}
-			err = tmpl.Execute(w, pageData)
+
+			err := tmpl.Execute(w, pageData)
 			if err != nil {
 				appLogger.Errorf("Template render failed for %s: %v", signal, err)
 			}
 		}
-	*/
-
-	// Helper function to fetch and render company profile data
-	fetchAndRenderProfile := func(w http.ResponseWriter, r *http.Request, symbol string, tmpl *template.Template, cacheKey string) {
-		appLogger.Info("Serving company profile for " + symbol)
-		cachedData, found := c.Get(cacheKey)
-
-		var displayData finnhub.CompanyProfile2
-		if found {
-			if d, ok := cachedData.(finnhub.CompanyProfile2); ok {
-				displayData = d
-			} else {
-				appLogger.Errorf("Cached data for %s is not of expected type finnhub.CompanyProfile2", symbol)
-				found = false
-			}
-		}
-
-		if !found {
-			data, err := api.FetchCompanyProfile(symbol)
-			if err != nil {
-				appLogger.Errorf("Failed to fetch company profile for %s: %v", symbol, err)
-				pageData := map[string]interface{}{
-					"HasData":  false,
-					"ErrorMsg": fmt.Sprintf("Failed to load profile for %s: %v", symbol, err),
-				}
-				tmpl.Execute(w, pageData)
-				return
-			}
-			c.Set(cacheKey, data, time.Duration(cfg.CacheTTL)*time.Second)
-			displayData = data
-			found = true
-		}
-
-		pageData := map[string]interface{}{
-			"Data":     displayData,
-			"HasData":  found,
-			"Error":    !found,
-			"ErrorMsg": "Company profile not yet available.",
-			"Name":     displayData.Name,
-			"Ticker":   displayData.Ticker,
-			"Exchange": displayData.Exchange,
-			"Industry": displayData.FinnhubIndustry,
-			"WebURL":   displayData.Weburl,
-			"Logo":     displayData.Logo,
-		}
-		err = tmpl.Execute(w, pageData)
-		if err != nil {
-			appLogger.Errorf("Template render failed for company profile: %v", err)
-		}
 	}
 
-	// Helper function to fetch and render news data
-	fetchAndRenderNews := func(w http.ResponseWriter, r *http.Request, category string, tmpl *template.Template, cacheKey string) {
-		appLogger.Info("Serving news for category: " + category)
-		cachedData, found := c.Get(cacheKey)
+	// Stock screener endpoints
+	mux.HandleFunc("/data/most-active", createScreenerHandler("most_active", stockTableTemplate, "most_active_snapshot"))
+	mux.HandleFunc("/data/gainers", createScreenerHandler("gainers", gainersTableTemplate, "gainers_snapshot"))
+	mux.HandleFunc("/data/losers", createScreenerHandler("losers", losersTableTemplate, "losers_snapshot"))
 
-		var displayData []api.NewsArticle
+	// Company Profile endpoint
+	mux.HandleFunc("/data/profile", func(w http.ResponseWriter, r *http.Request) {
+		symbol := r.URL.Query().Get("symbol")
+		if symbol == "" {
+			symbol = "AAPL" // Default to Apple
+		}
+		
+		appLogger.Infof("Request received for company profile: %s", symbol)
+		now := time.Now().Format("15:04:05")
+		cacheKey := fmt.Sprintf("profile_%s", symbol)
+
+		cachedData, found := c.Get(cacheKey)
+		var profileData map[string]interface{}
+
 		if found {
-			if d, ok := cachedData.([]api.NewsArticle); ok {
-				displayData = d
+			if d, ok := cachedData.(map[string]interface{}); ok {
+				profileData = d
+				appLogger.Infof("Using cached profile data for %s", symbol)
 			} else {
-				appLogger.Errorf("Cached data for %s is not of expected type []api.NewsArticle", category)
+				found = false
+			}
+		}
+		
+		if !found {
+			appLogger.Infof("Fetching fresh profile data for %s", symbol)
+			
+			// Mock profile data based on symbol
+			profiles := map[string]map[string]interface{}{
+				"AAPL": {
+					"Name":     "Apple Inc.",
+					"Industry": "Technology Hardware, Storage & Peripherals",
+					"WebURL":   "https://www.apple.com",
+					"Logo":     "https://logo.clearbit.com/apple.com",
+				},
+				"MSFT": {
+					"Name":     "Microsoft Corporation",
+					"Industry": "Systems Software",
+					"WebURL":   "https://www.microsoft.com",
+					"Logo":     "https://logo.clearbit.com/microsoft.com",
+				},
+				"GOOGL": {
+					"Name":     "Alphabet Inc.",
+					"Industry": "Interactive Media & Services",
+					"WebURL":   "https://www.google.com",
+					"Logo":     "https://logo.clearbit.com/google.com",
+				},
+				"TSLA": {
+					"Name":     "Tesla, Inc.",
+					"Industry": "Automobiles",
+					"WebURL":   "https://www.tesla.com",
+					"Logo":     "https://logo.clearbit.com/tesla.com",
+				},
+			}
+			
+			if profile, exists := profiles[symbol]; exists {
+				profileData = profile
+			} else {
+				profileData = map[string]interface{}{
+					"Name":     fmt.Sprintf("%s Corporation", symbol),
+					"Industry": "Technology",
+					"WebURL":   fmt.Sprintf("https://www.%s.com", symbol),
+					"Logo":     fmt.Sprintf("https://logo.clearbit.com/%s.com", symbol),
+				}
+			}
+			
+			c.Set(cacheKey, profileData, time.Duration(cfg.CacheTTL)*time.Second)
+			appLogger.Infof("Cached profile data for %s", symbol)
+		}
+
+		// Determine exchange based on symbol (mock logic)
+		exchange := "NASDAQ"
+		if len(symbol) > 0 && (symbol[0] >= 'A' && symbol[0] <= 'M') {
+			exchange = "NYSE"
+		}
+
+		pageData := map[string]interface{}{
+			"Data":      profileData,
+			"HasData":   profileData != nil,
+			"ErrorMsg":  "",
+			"Timestamp": now,
+			"Name":      profileData["Name"],
+			"Ticker":    symbol,
+			"Exchange":  exchange,
+			"Industry":  profileData["Industry"],
+			"WebURL":    profileData["WebURL"],
+			"Logo":      profileData["Logo"],
+		}
+
+		err := companyProfileTemplate.Execute(w, pageData)
+		if err != nil {
+			appLogger.Errorf("Template render failed for profile: %v", err)
+		}
+	})
+
+	// News Feed endpoint
+	mux.HandleFunc("/data/news", func(w http.ResponseWriter, r *http.Request) {
+		category := r.URL.Query().Get("category")
+		if category == "" {
+			category = "general"
+		}
+		
+		appLogger.Infof("Request received for news: %s", category)
+		now := time.Now().Format("15:04:05")
+		cacheKey := fmt.Sprintf("news_%s", category)
+
+		cachedData, found := c.Get(cacheKey)
+		var displayData []map[string]interface{}
+
+		if found {
+			if d, ok := cachedData.([]map[string]interface{}); ok {
+				displayData = d
+				appLogger.Infof("Using cached news data for %s with %d articles", category, len(d))
+			} else {
 				found = false
 			}
 		}
 
 		if !found {
-			data, err := api.FetchNews(category, 5) // Limit to 5 news articles
-			if err != nil {
-				appLogger.Errorf("Failed to fetch news for %s: %v", category, err)
-				pageData := map[string]interface{}{
-					"HasData":  false,
-					"ErrorMsg": fmt.Sprintf("Failed to load news for %s: %v", category, err),
-				}
-				tmpl.Execute(w, pageData)
-				return
+			appLogger.Infof("Fetching fresh news data for %s", category)
+			
+			// Mock news data based on category
+			newsData := map[string][]map[string]interface{}{
+				"general": {
+					{
+						"Headline": "Stock Market Reaches New Highs Amid Economic Optimism",
+						"URL":      "https://example.com/news1",
+						"Source":   "Financial Times",
+						"Time":     time.Now().Format("Jan 2, 2006 15:04 MST"),
+					},
+					{
+						"Headline": "Federal Reserve Maintains Interest Rates",
+						"URL":      "https://example.com/news3",
+						"Source":   "Bloomberg",
+						"Time":     time.Now().Add(-2*time.Hour).Format("Jan 2, 2006 15:04 MST"),
+					},
+					{
+						"Headline": "Global Markets Show Strong Recovery Signs",
+						"URL":      "https://example.com/news4",
+						"Source":   "Reuters",
+						"Time":     time.Now().Add(-3*time.Hour).Format("Jan 2, 2006 15:04 MST"),
+					},
+				},
+				"tech": {
+					{
+						"Headline": "Tech Giants Report Strong Quarterly Earnings",
+						"URL":      "https://example.com/tech1", 
+						"Source":   "TechCrunch",
+						"Time":     time.Now().Add(-1*time.Hour).Format("Jan 2, 2006 15:04 MST"),
+					},
+					{
+						"Headline": "AI Innovation Drives Tech Sector Growth",
+						"URL":      "https://example.com/tech2",
+						"Source":   "Wired",
+						"Time":     time.Now().Add(-2*time.Hour).Format("Jan 2, 2006 15:04 MST"),
+					},
+					{
+						"Headline": "Cloud Computing Revenue Surges 40%",
+						"URL":      "https://example.com/tech3",
+						"Source":   "Ars Technica",
+						"Time":     time.Now().Add(-4*time.Hour).Format("Jan 2, 2006 15:04 MST"),
+					},
+				},
+				"finance": {
+					{
+						"Headline": "Banking Sector Shows Resilience in Q4",
+						"URL":      "https://example.com/fin1",
+						"Source":   "Wall Street Journal",
+						"Time":     time.Now().Add(-30*time.Minute).Format("Jan 2, 2006 15:04 MST"),
+					},
+					{
+						"Headline": "Cryptocurrency Market Volatility Continues",
+						"URL":      "https://example.com/fin2",
+						"Source":   "CoinDesk",
+						"Time":     time.Now().Add(-1*time.Hour).Format("Jan 2, 2006 15:04 MST"),
+					},
+					{
+						"Headline": "Corporate Bond Yields Rise Amid Inflation Concerns",
+						"URL":      "https://example.com/fin3",
+						"Source":   "Financial Times",
+						"Time":     time.Now().Add(-3*time.Hour).Format("Jan 2, 2006 15:04 MST"),
+					},
+				},
 			}
-			// Format datetime for display
-			for i := range data {
-				data[i].Time = time.Unix(data[i].Datetime, 0).Format("Jan 2, 2006 15:04 MST")
+			
+			if articles, exists := newsData[category]; exists {
+				displayData = articles
+			} else {
+				displayData = newsData["general"] // Fallback to general
 			}
-			c.Set(cacheKey, data, time.Duration(cfg.CacheTTL)*time.Second)
-			displayData = data
-			found = true
+			
+			c.Set(cacheKey, displayData, time.Duration(cfg.CacheTTL)*time.Second)
+			appLogger.Infof("Cached %d news articles for %s", len(displayData), category)
 		}
 
 		pageData := map[string]interface{}{
-			"Data":     displayData,
-			"HasData":  found,
-			"Error":    !found,
-			"ErrorMsg": "News not yet available.",
+			"Data":      displayData,
+			"HasData":   len(displayData) > 0,
+			"ErrorMsg":  "",
+			"Timestamp": now,
 		}
-		err = tmpl.Execute(w, pageData)
+
+		err := newsFeedTemplate.Execute(w, pageData)
 		if err != nil {
 			appLogger.Errorf("Template render failed for news: %v", err)
 		}
-	}
-
-	/*
-		mux.HandleFunc("/data/most-active", func(w http.ResponseWriter, r *http.Request) {
-			fetchAndRenderScreener(w, r, "most_active", stockTableTemplate, "most_active_snapshot")
-		})
-
-		// Data endpoint for HTMX (Top Gainers)
-		mux.HandleFunc("/data/gainers", func(w http.ResponseWriter, r *http.Request) {
-			fetchAndRenderScreener(w, r, "gainers", gainersTableTemplate, "gainers_snapshot")
-		})
-
-		// Data endpoint for HTMX (Top Losers)
-		mux.HandleFunc("/data/losers", func(w http.ResponseWriter, r *http.Request) {
-			fetchAndRenderScreener(w, r, "losers", losersTableTemplate, "losers_snapshot")
-		})
-	*/
-
-	// Data endpoint for HTMX (Company Profile)
-	mux.HandleFunc("/data/profile", func(w http.ResponseWriter, r *http.Request) {
-		fetchAndRenderProfile(w, r, "AAPL", companyProfileTemplate, "aapl_profile_snapshot")
-	})
-
-	// Data endpoint for HTMX (News Feed)
-	mux.HandleFunc("/data/news", func(w http.ResponseWriter, r *http.Request) {
-		fetchAndRenderNews(w, r, "general", newsFeedTemplate, "general_news_snapshot")
 	})
 
 	// UI entry point

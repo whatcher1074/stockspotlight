@@ -1,16 +1,52 @@
 <!-- File: static/news_feed.html -->
-<h3>Latest News</h3>
-{{if .HasData}}
-  <ul class="list-group">
-    {{range .Data}}
-      <li class="list-group-item">
-        <a href="{{.URL}}" target="_blank">{{.Headline}}</a>
-        <small class="text-muted d-block">{{.Source}} - {{.Time}}</small>
-      </li>
-    {{end}}
-  </ul>
-{{else}}
-  <div class="alert alert-warning" role="alert">
-    {{.ErrorMsg}}
-  </div>
-{{end}}
+<div>
+  <p><small>Last updated: <span>{{.Timestamp}}</span></small></p>
+  
+  {{if .HasData}}
+    <div class="news-articles">
+      {{range .Data}}
+        <div class="border-bottom pb-2 mb-2">
+          <h6 class="mb-1">
+            <a href="{{.URL}}" target="_blank" class="text-decoration-none text-dark">
+              {{.Headline}}
+            </a>
+          </h6>
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-primary">{{.Source}}</small>
+            <small class="text-muted">{{.Time}}</small>
+          </div>
+        </div>
+      {{end}}
+    </div>
+    
+    <div class="mt-3">
+      <div class="btn-group btn-group-sm" role="group">
+        <button class="btn btn-outline-secondary" 
+                hx-get="/data/news?category=general" 
+                hx-target="#news-feed"
+                hx-indicator="#news-feed .htmx-indicator">
+          General
+        </button>
+        <button class="btn btn-outline-secondary" 
+                hx-get="/data/news?category=tech" 
+                hx-target="#news-feed"
+                hx-indicator="#news-feed .htmx-indicator">
+          Tech
+        </button>
+        <button class="btn btn-outline-secondary" 
+                hx-get="/data/news?category=finance" 
+                hx-target="#news-feed"
+                hx-indicator="#news-feed .htmx-indicator">
+          Finance
+        </button>
+      </div>
+    </div>
+    
+    <p><small class="text-muted mt-2 d-block">Showing {{len .Data}} latest articles</small></p>
+    
+  {{else}}
+    <div class="alert alert-warning" role="alert">
+      {{.ErrorMsg}}
+    </div>
+  {{end}}
+</div>
